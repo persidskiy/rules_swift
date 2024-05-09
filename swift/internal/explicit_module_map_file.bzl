@@ -35,16 +35,22 @@ def write_explicit_swift_module_map_file(
     module_descriptions = []
 
     for module_context in module_contexts:
-        if not module_context.swift:
-            continue
-
-        swift_context = module_context.swift
         module_description = {
             "moduleName": module_context.name,
             "isFramework": False,
         }
-        if swift_context.swiftmodule:
-            module_description["modulePath"] = swift_context.swiftmodule.path
+
+        if module_context.swift:
+            swift_module = module_context.swift.swiftmodule
+            if swift_module:
+                module_description["modulePath"] = swift_module.path
+        elif module_context.clang:
+            module_map = module_context.clang.module_map
+            if module_map:
+                module_description["clangModuleMapPath"] = module_map.path
+        else:
+            continue
+
         module_descriptions.append(module_description)
 
     actions.write(

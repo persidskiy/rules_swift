@@ -15,10 +15,13 @@ swift_library(
     features = [
         "swift.emit_swiftinterface",
         "swift.enable_library_evolution",
-        "swift.vfsoverlay",
+        "swift.use_explicit_swift_module_map",
     ],
     module_name = "MyLibrary",
-    deps = [":underlying_objc", ":some_objc"],
+    deps = [
+        ":some_objc",
+        ":underlying_objc",
+    ],
 )
 
 objc_library(
