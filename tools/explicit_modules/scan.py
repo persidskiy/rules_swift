@@ -50,6 +50,13 @@ _SDK_CONSTRAINTS = {
     ],
 }
 
+# Mac Catalyst builds against the macOS SDK with its iOSSupport overlay, which isn't scanned yet;
+# its compiles get no explicit system modules.
+_CATALYST_CONSTRAINTS = [
+    "@platforms//os:ios",
+    "@apple_support//constraints:catalyst",
+]
+
 _DEFAULT_EXCLUDED_MODULES = {
     "AppleTVSimulator": {"CoreAudio_Private"},
     "iPhoneSimulator": {"CoreAudio_Private"},
@@ -1005,6 +1012,16 @@ def _main() -> None:
         buf.write('    visibility = ["//visibility:private"],\n')
         buf.write(")\n")
 
+    buf.write("\n")
+    buf.write("config_setting(\n")
+    buf.write('    name = "MacCatalyst_sdk",\n')
+    buf.write("    constraint_values = [\n")
+    for c in _CATALYST_CONSTRAINTS:
+        buf.write(f'        "{c}",\n')
+    buf.write("    ],\n")
+    buf.write('    visibility = ["//visibility:private"],\n')
+    buf.write(")\n")
+
     all_modules_by_sdk: dict[str, set[str]] = {}
     all_modules: set[str] = set()
     per_sdk_text: dict[str, str] = {}
@@ -1049,6 +1066,7 @@ def _main() -> None:
     for sdk in sdk_names:
         if all_modules_by_sdk.get(sdk):
             buf.write(f'        ":{sdk}_sdk": ":{sdk}_all_modules",\n')
+    buf.write('        ":MacCatalyst_sdk": ":_empty_all_modules",\n')
     buf.write('        "@platforms//os:none": ":_empty_all_modules",\n')
     buf.write("    }),\n")
     buf.write(")\n")
@@ -1060,6 +1078,7 @@ def _main() -> None:
     for sdk in sdk_names:
         if all_modules_by_sdk.get(sdk):
             buf.write(f'        ":{sdk}_sdk": ":{sdk}_implicit_modules",\n')
+    buf.write('        ":MacCatalyst_sdk": ":_empty_implicit_modules",\n')
     buf.write('        "@platforms//os:none": ":_empty_implicit_modules",\n')
     buf.write("    }),\n")
     buf.write(")\n")
@@ -1071,6 +1090,7 @@ def _main() -> None:
     for sdk in sdk_names:
         if all_modules_by_sdk.get(sdk):
             buf.write(f'        ":{sdk}_sdk": ":{sdk}_all_cross_import_overlays",\n')
+    buf.write('        ":MacCatalyst_sdk": ":_empty_cross_import_overlays",\n')
     buf.write('        "@platforms//os:none": ":_empty_cross_import_overlays",\n')
     buf.write("    }),\n")
     buf.write(")\n")

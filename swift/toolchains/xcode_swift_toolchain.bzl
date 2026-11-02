@@ -197,9 +197,10 @@ def _sdk_developer_framework_dir(apple_toolchain, target_triple):
     """
 
     # All platforms have a `Developer/Library/Frameworks` directory in their SDK
-    # root except for macOS (all versions of Xcode so far)
+    # root except for macOS and Mac Catalyst, which use the macOS SDK (all
+    # versions of Xcode so far)
     os = target_triples.unversioned_os(target_triple)
-    if os == "macos":
+    if os == "macos" or target_triple.environment == "macabi":
         return None
 
     return paths.join(apple_toolchain.sdk_dir(), "Developer/Library/Frameworks")
@@ -261,6 +262,11 @@ def _swift_linkopts_cc_info(
         ])
     ] + [
         "-L{}".format(swift_lib_dir),
+    ] + ([
+        # The macOS compatibility libraries are zippered for Mac Catalyst.
+        "-L{}".format(paths.join(paths.dirname(swift_lib_dir), "macosx")),
+        "-L{}".format(paths.join(apple_toolchain.sdk_dir(), "System/iOSSupport/usr/lib/swift")),
+    ] if target_triple.environment == "macabi" else []) + [
         "-L/usr/lib/swift",
     ])
 
@@ -442,6 +448,24 @@ def _all_action_configs(
             ],
         ),
     ]
+
+    # Mac Catalyst frameworks and Swift overlays overlay the macOS SDK, as in Xcode.
+    if target_triple.environment == "macabi":
+        ios_support_dir = paths.join(apple_toolchain.sdk_dir(), "System/iOSSupport")
+        action_configs.append(
+            ActionConfigInfo(
+                actions = all_compile_action_names() + [
+                    SWIFT_ACTION_COMPILE_MODULE_INTERFACE,
+                    SWIFT_ACTION_DUMP_AST,
+                    SWIFT_ACTION_SYMBOL_GRAPH_EXTRACT,
+                    SWIFT_ACTION_SYNTHESIZE_INTERFACE,
+                ],
+                configurators = [
+                    add_arg("-Fsystem", paths.join(ios_support_dir, "System/Library/Frameworks")),
+                    add_arg("-I", paths.join(ios_support_dir, "usr/lib/swift")),
+                ],
+            ),
+        )
 
     # https://github.com/swiftlang/llvm-project/issues/12826
     action_configs.extend([

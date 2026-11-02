@@ -20,6 +20,7 @@
 _TRIPLE_OS_TO_PLATFORM = {
     ("ios", None): apple_common.platform.ios_device,
     ("ios", "simulator"): apple_common.platform.ios_simulator,
+    ("ios", "macabi"): apple_common.platform.catalyst,
     ("macos", None): apple_common.platform.macos,
     ("tvos", None): apple_common.platform.tvos_device,
     ("tvos", "simulator"): apple_common.platform.tvos_simulator,
@@ -187,6 +188,8 @@ def _platform_name_for_swift(triple):
 
     is_simulator = (triple.environment == "simulator")
     if os == "ios":
+        if triple.environment == "macabi":
+            return "maccatalyst"
         return "iphonesimulator" if is_simulator else "iphoneos"
     if os == "tvos":
         return "appletvsimulator" if is_simulator else "appletvos"
